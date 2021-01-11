@@ -6,8 +6,6 @@ for dir in "$HOME/.golangs"; do
 done
 unset dir
 
-echo >&2 GOLANGS=$GOLANGS
-
 function chgo_reset()
 {
 	[[ -z "$GOROOT" ]] && return
@@ -48,7 +46,7 @@ function chgo()
 			local dir star
 			for dir in "${GOLANGS[@]}"; do
 				dir="${dir%%/}"
-				if [[ "$dir" == "$FOROOT" ]]; then star="*"
+				if [[ "$dir" == "$GOROOT" ]]; then star="*"
 				else                               star=" "
 				fi
 
@@ -76,3 +74,31 @@ function chgo()
 			;;
 	esac
 }
+
+unset GOAUTOVERSION
+
+function chgo_auto() {
+	local dir="$PWD/" version
+
+	until [[ -z "$dir" ]]; do
+		dir="${dir%/*}"
+
+		if { read -r version <"$dir/.go-version"; } 2>/dev/null || [[ -n "$version" ]]; then
+			if [[ "$version" == "$GOAUTOVERSION" ]]; then return
+			else
+				GOAUTOVERSION="$version"
+				chgo "$version"
+				return $?
+			fi
+		fi
+	done
+
+	if [[ -n "$GOAUTOVERSION" ]]; then
+		chgo_reset
+		unset GOAUTOVERSION
+	fi
+}
+
+if [[ ! "$preexec_functions" == *chgo_auto* ]]; then
+    preexec_functions+=("chgo_auto")
+fi
